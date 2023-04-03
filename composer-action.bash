@@ -170,7 +170,22 @@ else
   memory_limit=''
 fi
 
-echo "Command: $command_string" >> output.log 2>&1
+additional_volumes=''
+if [ "$ACTION_SETUP_DRUPAL" = "yes" ]
+then
+  plugin_url="https://gitlab.com/drupalspoons/composer-plugin/-/raw/master/bin/setup"
+  curl --silent -H "User-agent: cURL (https://github.com/php-actions)" -L "$plugin_url" > "${github_action_path}/drupal_setup.bash"
+  chmod +x "${github_action_path}/drupal_setup.bash"
+
+  command_string="drupal_setup.bash"
+
+  echo "Docker tag: $docker_tag"
+
+  additional_volumes="$additional_volumes --volume ${github_action_path}/drupal_setup.bash:/usr/local/bin/drupal_setup.bash"
+fi
+
+
+echo "Command: $command_string"
 mkdir -p /tmp/composer-cache
 
 export COMPOSER_CACHE_DIR="/tmp/composer-cache"
@@ -188,7 +203,7 @@ do
 	key=$(echo "$line" | cut -f1 -d=)
 	if printf '%s\n' "${dockerKeys[@]}" | grep -q -P "^${key}\$"
 	then
-    		echo "Skipping env variable $key" >> output.log
+    echo "Skipping env variable $key" >> output.log 2>&1
 	else
 		echo "$line" >> DOCKER_ENV
 	fi
@@ -196,12 +211,14 @@ done <<<$(env)
 
 echo "name=full_command::${command_string}" >> $GITHUB_OUTPUT
 
+# Run the command
 docker run --rm \
 	--volume "${github_action_path}/composer.phar":/usr/local/bin/composer \
 	--volume ~/.gitconfig:/root/.gitconfig \
 	--volume ~/.ssh:/root/.ssh \
 	--volume "${GITHUB_WORKSPACE}":/app \
 	--volume "/tmp/composer-cache":/tmp/composer-cache \
+  ${additional_volumes} \
 	--workdir /app \
 	--env-file ./DOCKER_ENV \
 	--network host \

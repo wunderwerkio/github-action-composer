@@ -1,5 +1,5 @@
-name: "Composer (php-actions)"
-description: "Use the Composer CLI in your Github Actions."
+name: "Drupal Spoons Composer (php-actions)"
+description: "Use the Composer CLI with the Drupal Spoons composer plugin in your Github Actions."
 
 inputs:
   version:
@@ -13,7 +13,8 @@ inputs:
     required: false
 
   php_extensions:
-    description: "Space separated list of extensions to configure with the PHP build"
+    description: "Space separated list of extensions to configure with the PHP build (defaults to: gd)"
+    default: gd
     required: false
 
   command:
@@ -73,6 +74,46 @@ inputs:
     description: "Sets the composer memory limit"
     required: false
 
+  setup_drupal:
+    description: "Setup drupal via drupalspoons composer plugin"
+    required: false
+    default: no
+
+  drupal_core_constraint:
+    description: "Drupal core version constraint for the drupal version to install"
+    required: false
+    default: "^10"
+
+  drupal_spoons_plugin_constraint:
+    description: "Drupal spoons composer plugin version constraint"
+    required: false
+    default: "^2"
+
+  drupal_spoons_composer_file:
+    description: "Drupal Spoons composer file name"
+    required: false
+    default: composer.spoons.json
+
+  drupal_web_root:
+    description: "Web root directory"
+    required: false
+    default: web
+
+  drupal_web_port:
+    description: "Listen port for local drupal installation"
+    required: false
+    default: 9000
+
+  drupal_simpletest_base_url:
+    description: "Drupal Simpletest base url"
+    required: false
+    default: http://localhost
+
+  drupal_simpletest_db:
+    description: "Drupal Simpletest Database URI"
+    required: false
+    default: sqlite://localhost/sites/default/files/.sqlite
+
 outputs:
   full_command:
     description: "The full command passed to docker to run"
@@ -99,7 +140,15 @@ runs:
         ACTION_SSH_PORT: ${{ inputs.ssh_port }}
         ACTION_WORKING_DIR: ${{ inputs.working_dir }}
         ACTION_MEMORY_LIMIT: ${{ inputs.memory_limit }}
-      id: composer_run
+        ACTION_SETUP_DRUPAL: ${{ inputs.setup_drupal }}
+        DRUPAL_CORE_CONSTRAINT: ${{ inputs.drupal_core_constraint }}
+        COMPOSER_PLUGIN_CONSTRAINT: ${{ inputs.drupal_spoons_plugin_constraint }}
+        COMPOSER: ${{ inputs.drupal_spoons_composer_file }}
+        WEB_ROOT: ${{ inputs.drupal_web_root }}
+        WEB_PORT: ${{ inputs.drupal_web_port }}
+        SIMPLETEST_BASE_URL: ${{ inputs.drupal_simpletest_base_url }}
+        SIMPLETEST_DB: ${{ inputs.drupal_simpletest_db }}
+      id: composer_drupal_spoons_run
       run: |
         set -e
         bash <(curl -s https://raw.githubusercontent.com/php-actions/php-build/v2.2.0/php-build.bash) composer
